@@ -247,7 +247,6 @@ linModGen <- function(ui, focei = TRUE, derivFct = FALSE) {
   .th <- .ini[!is.na(.ini$ntheta), , drop = FALSE]
   .th <- .th[order(.th$ntheta), , drop = FALSE]
   # literalFix drops the fixed thetas before FOCEi reads scaleC by position
-  .th <- .th[!.th$fix, , drop = FALSE]
   if (nrow(.th) == 0L) {
     return(NULL)
   }
