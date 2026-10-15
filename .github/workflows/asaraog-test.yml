@@ -1,0 +1,53 @@
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: branch or sha
+        required: true
+      filter:
+        description: testthat file filter (regex)
+        required: true
+name: asaraog-test
+permissions: read-all
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      NOT_CRAN: "true"
+      FILTER: ${{ inputs.filter }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::pkgload
+            any::testthat
+            nlmixr2/lotri
+            nlmixr2/rxode2ll
+            nlmixr2/rxode2lincmt
+            nlmixr2/rxode2
+            nlmixr2/nlmixr2est
+            nlmixr2/nlmixr2plot
+            nlmixr2/PreciseSums
+            nlmixr2/lbfgsb3c
+            nlmixr2/n1qn1c
+            nlmixr2/dparser-R
+          needs: check
+      - name: Run the filtered test files and print every test result
+        shell: Rscript {0}
+        run: |
+          res <- testthat::test_local(".", filter = Sys.getenv("FILTER"),
+                                      reporter = "progress", stop_on_failure = FALSE)
+          df <- as.data.frame(res)
+          options(width = 250)
+          print(df[, c("file", "test", "nb", "failed", "skipped", "error")])
+          cat("TOTAL tests:", nrow(df), " failed:", sum(df$failed > 0),
+              " errored:", sum(df$error), " skipped:", sum(df$skipped), "\n")
+          if (any(df$failed > 0 | df$error)) quit(status = 1)
